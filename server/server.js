@@ -23,6 +23,19 @@ app.use("/api/customers", require("./routes/customers"));
 app.use("/api/suits", require("./routes/suits"));
 app.use("/api/workers", require("./routes/workers"));
 
+// Serve static assets in production
+if (process.env.NODE_ENV === "production") {
+  // Set static folder
+  app.use(express.static(path.join(__dirname, "../client/build")));
+
+  // Any route that is not an API route will be redirected to index.html
+  app.get("*", (req, res) => {
+    if (!req.path.startsWith("/api") && !req.path.startsWith("/uploads")) {
+      res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
+    }
+  });
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

@@ -1,0 +1,13 @@
+{
+  "name": "management-system",
+  "version": "1.0.0",
+  "description": "Management System Application",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "cd server && node server.js",
+    "build": "cd client && npm install && npm run build && cd ../server && npm install",
+    "postinstall": "npm run build"
+  }
+}
