@@ -17,7 +17,63 @@ A full-stack application for managing customers, suits, and workers.
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL
 
-## Setup Instructions
+## Deployment Instructions for Render.com
+
+### Initial Deployment
+
+1. **Push your code to GitHub**
+
+2. **Create a PostgreSQL database on Render.com**
+
+   - Go to the Render dashboard and click "New" > "PostgreSQL"
+   - Configure your database:
+     - Name: management-system-db
+     - Database: management_system
+     - User: postgres (or choose your own)
+     - Set a secure password
+   - Note down the connection string provided by Render
+
+3. **Deploy the Web Service on Render.com**
+
+   - Go to the Render dashboard and click "New" > "Web Service"
+   - Connect your GitHub repository
+   - Configure your web service:
+     - Name: management-system
+     - Environment: Node
+     - Build Command: `npm run build`
+     - Start Command: `npm run test-server` (initially for testing)
+   - Set environment variables:
+     - `CONNECTION_STRING`: Your PostgreSQL connection string from step 2
+     - `JWT_SECRET`: A secure random string for JWT authentication
+     - `NODE_ENV`: production
+     - `PORT`: 10000
+
+4. **Test the Deployment**
+   - Once deployed, visit your application URL
+   - Verify that the test server is working by visiting `/api/health`
+   - If everything is working, update the start command to `npm start` for full functionality
+
+### Troubleshooting
+
+If you encounter issues with the deployment:
+
+1. **Check the Render logs** for error messages
+
+2. **Database Connection Issues**
+
+   - Verify that the CONNECTION_STRING environment variable is set correctly
+   - Make sure the database is accessible from the web service
+
+3. **Server Timeout Issues**
+
+   - Try using the test server (`npm run test-server`) to verify basic functionality
+   - Check for long-running queries or operations in your code
+
+4. **File Upload Issues**
+   - Verify that the uploads directory is being created correctly
+   - Check permissions for file creation
+
+## Local Setup Instructions
 
 ### Prerequisites
 

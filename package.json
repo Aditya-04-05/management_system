@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "cd client && npm install && npm run build && cd ../server && npm install",
-    "start": "node deploy.js"
+    "start": "node deploy.js",
+    "test-server": "node server/test-server.js"
   }
 }
