@@ -13,8 +13,14 @@ CREATE TABLE customers (
   order_date DATE,
   due_date DATE,
   pending_amount DECIMAL(10, 2) DEFAULT 0,
-  received_amount DECIMAL(10, 2) DEFAULT 0,
-  measurement_image_url VARCHAR(255)
+  received_amount DECIMAL(10, 2) DEFAULT 0
+);
+
+-- Create customer_measurement_images table
+CREATE TABLE customer_measurement_images (
+  image_id SERIAL PRIMARY KEY,
+  customer_id VARCHAR(50) REFERENCES customers(customer_id) ON DELETE CASCADE,
+  image_url VARCHAR(255) NOT NULL
 );
 
 -- Create workers table

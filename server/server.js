@@ -4,10 +4,19 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
 
-// Create uploads directory if it doesn't exist
+// Create uploads directory and subdirectories if they don't exist
 const uploadsDir = path.join(__dirname, "uploads");
+const measurementsDir = path.join(uploadsDir, "measurements");
+const suitsDir = path.join(uploadsDir, "suits");
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(measurementsDir)) {
+  fs.mkdirSync(measurementsDir, { recursive: true });
+}
+if (!fs.existsSync(suitsDir)) {
+  fs.mkdirSync(suitsDir, { recursive: true });
 }
 
 const app = express();

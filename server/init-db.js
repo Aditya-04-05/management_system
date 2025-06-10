@@ -3,42 +3,143 @@ const bcrypt = require("bcrypt");
 
 const initializeDatabase = async () => {
   try {
-    console.log("Checking if admin user exists...");
+    console.log("Initializing database...");
 
-    // Check if users table exists
-    try {
-      const tableCheck = await pool.query("SELECT to_regclass('public.users')");
+    // Create customers table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS customers (
+        customer_id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100),
+        phone_number VARCHAR(20),
+        instagram_id VARCHAR(100),
+        total_suits INTEGER DEFAULT 0,
+        order_date DATE,
+        due_date DATE,
+        pending_amount DECIMAL(10, 2) DEFAULT 0,
+        received_amount DECIMAL(10, 2) DEFAULT 0
+      )
+    `);
+    console.log("Customers table created or already exists.");
 
-      if (!tableCheck.rows[0].to_regclass) {
-        console.log("Users table does not exist. Creating tables...");
+    // Create customer_measurement_images table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS customer_measurement_images (
+        image_id SERIAL PRIMARY KEY,
+        customer_id VARCHAR(50) REFERENCES customers(customer_id) ON DELETE CASCADE,
+        image_url VARCHAR(255) NOT NULL
+      )
+    `);
+    console.log("Customer measurement images table created or already exists.");
 
-        // Create users table
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS users (
-            user_id SERIAL PRIMARY KEY,
-            username VARCHAR(50) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            role VARCHAR(20) DEFAULT 'user',
-            CONSTRAINT valid_role CHECK (role IN ('admin', 'user'))
-          )
-        `);
+    // Create workers table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS workers (
+        worker_id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        suits_assigned INTEGER DEFAULT 0
+      )
+    `);
+    console.log("Workers table created or already exists.");
 
-        console.log("Users table created.");
-      }
-    } catch (tableErr) {
-      console.error("Error checking for users table:", tableErr);
-      // Create users table anyway
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS users (
-          user_id SERIAL PRIMARY KEY,
-          username VARCHAR(50) UNIQUE NOT NULL,
-          password VARCHAR(255) NOT NULL,
-          role VARCHAR(20) DEFAULT 'user',
-          CONSTRAINT valid_role CHECK (role IN ('admin', 'user'))
-        )
-      `);
-      console.log("Users table created.");
-    }
+    // Create suits table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS suits (
+        suit_id VARCHAR(50) PRIMARY KEY,
+        customer_id VARCHAR(50) REFERENCES customers(customer_id) ON DELETE CASCADE,
+        status VARCHAR(50) DEFAULT 'no progress',
+        order_date DATE,
+        due_date DATE,
+        worker_id INTEGER REFERENCES workers(worker_id) ON DELETE SET NULL,
+        CONSTRAINT valid_status CHECK (status IN ('no progress', 'work', 'stitching', 'warehouse', 'dispatched', 'completed'))
+      )
+    `);
+    console.log("Suits table created or already exists.");
+
+    // Create suit_images table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS suit_images (
+        image_id SERIAL PRIMARY KEY,
+        suit_id VARCHAR(50) REFERENCES suits(suit_id) ON DELETE CASCADE,
+        image_url VARCHAR(255) NOT NULL
+      )
+    `);
+    console.log("Suit images table created or already exists.");
+
+    // Create users table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        user_id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'user',
+        CONSTRAINT valid_role CHECK (role IN ('admin', 'user'))
+      )
+    `);
+    console.log("Users table created or already exists.");
+
+    // Create triggers
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION update_customer_suits_count()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF TG_OP = 'INSERT' THEN
+          UPDATE customers
+          SET total_suits = total_suits + 1
+          WHERE customer_id = NEW.customer_id;
+        ELSIF TG_OP = 'DELETE' THEN
+          UPDATE customers
+          SET total_suits = total_suits - 1
+          WHERE customer_id = OLD.customer_id;
+        END IF;
+        RETURN NULL;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      DROP TRIGGER IF EXISTS after_suit_insert_delete ON suits;
+      CREATE TRIGGER after_suit_insert_delete
+      AFTER INSERT OR DELETE ON suits
+      FOR EACH ROW
+      EXECUTE FUNCTION update_customer_suits_count();
+    `);
+    console.log("Customer suits count trigger created or updated.");
+
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION update_worker_suits_count()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF TG_OP = 'UPDATE' THEN
+          -- If worker_id is being set (was NULL before)
+          IF NEW.worker_id IS NOT NULL AND OLD.worker_id IS NULL THEN
+            UPDATE workers
+            SET suits_assigned = suits_assigned + 1
+            WHERE worker_id = NEW.worker_id;
+          -- If worker_id is being changed
+          ELSIF NEW.worker_id IS NOT NULL AND OLD.worker_id IS NOT NULL AND NEW.worker_id != OLD.worker_id THEN
+            UPDATE workers
+            SET suits_assigned = suits_assigned - 1
+            WHERE worker_id = OLD.worker_id;
+            
+            UPDATE workers
+            SET suits_assigned = suits_assigned + 1
+            WHERE worker_id = NEW.worker_id;
+          -- If worker_id is being removed
+          ELSIF NEW.worker_id IS NULL AND OLD.worker_id IS NOT NULL THEN
+            UPDATE workers
+            SET suits_assigned = suits_assigned - 1
+            WHERE worker_id = OLD.worker_id;
+          END IF;
+        END IF;
+        RETURN NULL;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      DROP TRIGGER IF EXISTS after_suit_worker_update ON suits;
+      CREATE TRIGGER after_suit_worker_update
+      AFTER UPDATE OF worker_id ON suits
+      FOR EACH ROW
+      EXECUTE FUNCTION update_worker_suits_count();
+    `);
+    console.log("Worker suits count trigger created or updated.");
 
     // Check if admin user exists
     const userCheck = await pool.query(
