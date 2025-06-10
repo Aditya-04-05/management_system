@@ -38,12 +38,10 @@ app.use((req, res, next) => {
   // Set timeout to 30 seconds
   req.setTimeout(30000, () => {
     console.error(`Request timeout: ${req.method} ${req.url}`);
-    res
-      .status(503)
-      .json({
-        error: "Request timeout",
-        message: "The server took too long to respond",
-      });
+    res.status(503).json({
+      error: "Request timeout",
+      message: "The server took too long to respond",
+    });
   });
   next();
 });
@@ -78,7 +76,7 @@ if (process.env.NODE_ENV === "production") {
   console.log("Setting up production static file serving...");
   try {
     // Set static folder
-    const clientBuildPath = path.join(__dirname, "../client/build");
+    const clientBuildPath = path.join(__dirname, "../client/");
     if (fs.existsSync(clientBuildPath)) {
       app.use(express.static(clientBuildPath));
       console.log("Serving static files from:", clientBuildPath);

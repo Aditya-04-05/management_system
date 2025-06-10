@@ -21,7 +21,7 @@ app.get("/api/test", (req, res) => {
 });
 
 // Serve static files from client/build if it exists
-const clientBuildPath = path.join(__dirname, "../client/build");
+const clientBuildPath = path.join(__dirname, "../client");
 if (fs.existsSync(clientBuildPath)) {
   app.use(express.static(clientBuildPath));
   console.log("Serving static files from:", clientBuildPath);
